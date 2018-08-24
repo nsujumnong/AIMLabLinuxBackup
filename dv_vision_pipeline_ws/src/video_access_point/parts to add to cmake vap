@@ -1,0 +1,24 @@
+parts to add to cmake files for video access point
+
+#additions based on basic sub pub tutorial for running .cpp files
+include_directories(include ${catkin_INCLUDE_DIRS})
+
+# #for c++ files
+add_executable( image_converter src/image_converter.cpp)
+target_link_libraries( image_converter ${catkin_LIBRARIES})
+
+add_executable( stereo_edit src/stereo_edit.cpp)
+target_link_libraries( stereo_edit ${catkin_LIBRARIES})
+
+add_executable( stereo_edit_dual_access src/stereo_edit_dual_access.cpp)
+target_link_libraries( stereo_edit_dual_access ${catkin_LIBRARIES})
+
+#per tutorial q on indigo opencv
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+
+
+# #for c++ files
+target_link_libraries(image_converter ${OpenCV_LIBS})
+target_link_libraries(stereo_edit ${OpenCV_LIBS})
+target_link_libraries(stereo_edit_dual_access ${OpenCV_LIBS})

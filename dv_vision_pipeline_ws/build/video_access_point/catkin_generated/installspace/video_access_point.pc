@@ -1,0 +1,8 @@
+prefix=/home/davincic2/dv_vision_pipeline_ws/install
+
+Name: video_access_point
+Description: Description of video_access_point
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/davincic2/dv_vision_pipeline_ws/install/lib 
+Requires: 

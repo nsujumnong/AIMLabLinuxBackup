@@ -1,0 +1,8 @@
+prefix=/home/davincic2/dv_vision_pipeline_ws/devel
+
+Name: jpeg_streamer
+Description: Description of jpeg_streamer
+Version: 0.2.4
+Cflags: 
+Libs: -L/home/davincic2/dv_vision_pipeline_ws/devel/lib 
+Requires: 

@@ -1,0 +1,212 @@
+#include <ros/ros.h>
+#include <image_transport/image_transport.h>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/image_encodings.h>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+/*
+ * Vision Pipeline -AIM Labs
+ *
+ * stereo_edit_dual_access
+ * -Modified stereo_edit node that allows acccess to both images at once for stereo image calculations
+ * -Edit at the sedctions indicated by //------ to edit images
+ *
+ * -This code, specificaly the subscribing, converting, and publishing of images,
+ * has been adapted from the cv_bridge ROS package tutorial.
+ * (on how to create a c++ based image bridge)
+ *
+ * Code was assembled for initial Vision Pipeline use by Matt Rafferty (contact at: rmrafferty@wpi.edu)
+ * */
+
+//Declare constants for display window names
+static const std::string OPENCV_WINDOW_RIGHT = "Image window Right";
+static const std::string OPENCV_WINDOW_LEFT = "Image window Left";
+//Create flags to indicate arrivale and edit of images per eye
+bool newEditRight = false;
+bool newEditLeft = false;
+//Create image pointers to hold ROS image messages converted into cv_bridge format wit OpenCV Mat image format
+cv_bridge::CvImagePtr cv_ptr_right;
+cv_bridge::CvImagePtr cv_ptr_left;
+
+//Initilize class for stereo Image subscribing, editing, and publishing
+class StereoEditDualAccess
+{
+  ros::NodeHandle nh_;
+  //declare image transport variable
+  image_transport::ImageTransport it_;
+  //declare image subscribers and publishers for left and right camera
+  image_transport::Subscriber image_sub_right;
+  image_transport::Publisher image_pub_right;
+  image_transport::Subscriber image_sub_left;
+  image_transport::Publisher image_pub_left;
+
+public:
+  //create class instance and image transport instance
+  StereoEditDualAccess()
+    : it_(nh_)
+  {
+    //Right eye
+    // Subscribe to input video feed and publish output video feed
+    image_sub_right = it_.subscribe("/right/image_raw", 1, &StereoEditDualAccess::imageCbR, this);
+    image_pub_right = it_.advertise("/stereo_edit/output_video_right", 1);
+
+    cv::namedWindow(OPENCV_WINDOW_RIGHT);
+
+    //Left Eye
+    // Subscribe to input video feed and publish output video feed
+    image_sub_left = it_.subscribe("/left/image_raw", 1, &StereoEditDualAccess::imageCbL, this);
+    image_pub_left = it_.advertise("/stereo_edit/output_video_left", 1);
+
+    cv::namedWindow(OPENCV_WINDOW_LEFT);
+  }
+
+  ~StereoEditDualAccess()
+  {
+    cv::namedWindow(OPENCV_WINDOW_RIGHT);
+    cv::namedWindow(OPENCV_WINDOW_LEFT);
+  }
+
+  void imageCbR(const sensor_msgs::ImageConstPtr& msg)
+  {
+    //create pointer to cv image
+    cv_bridge::CvImagePtr cv_ptr;
+
+    //try to copy ROS image message to cv_bridge style message (holder for cv Mat image)
+    try
+    {
+      cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+    }
+    catch (cv_bridge::Exception& e)
+    {
+      ROS_ERROR("cv_bridge exception at copy left eye image message: %s", e.what());
+      return;
+    }
+
+
+
+
+    cv_ptr_right = cv_ptr;
+
+
+
+    //Raise Flag to tell main that a new right edited image is ready to be published
+    newEditRight = true;
+
+    //cv::imshow(OPENCV_WINDOW_RIGHT, cv_ptr_right->image);
+    //cv::waitKey(3);
+
+
+
+
+  }
+
+
+
+
+  void imageCbL(const sensor_msgs::ImageConstPtr& msg)
+  {
+    //create pointer to cv image
+    cv_bridge::CvImagePtr cv_ptr;
+
+    //try to copy ROS image message to cv_bridge style message (holder for cv Mat image)
+    try
+    {
+      cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+    }
+    catch (cv_bridge::Exception& e)
+    {
+      ROS_ERROR("cv_bridge exception at copy left eye image message: %s", e.what());
+      return;
+    }
+
+    //assign reterived value to the global variable
+    cv_ptr_left = cv_ptr;
+
+
+
+
+    //Raise Flag to tell main that a new left edited image is ready to be published
+    newEditLeft = true;
+
+
+  }
+
+  void imagesEditPublish(cv_bridge::CvImagePtr right, cv_bridge::CvImagePtr left){
+
+
+      //---------------------------------------------------------------------------------
+      /*
+       * EDIT RIGHT AND LEFT IMAGE CODE HERE
+       * -address image with:
+       *      right->image
+       *      left->image
+       *
+       * */
+
+      //Example Function: Draw a Red Circle
+      // Draw an example circle on the left video stream
+      if (right->image.rows > 60 && right->image.cols > 60)
+        cv::circle(right->image, cv::Point(50, 50), 10, CV_RGB(255,0,0));
+
+
+
+      //Example Function: Draw a Red Circle
+      // Draw an example circle on the right video stream
+      if (left->image.rows > 60 && left->image.cols > 60)
+        cv::circle(left->image, cv::Point(50, 50), 10, CV_RGB(255,0,0));
+
+
+      //---------------------------------------------------------------------------------
+
+      //publish edited images
+      image_pub_right.publish(right->toImageMsg());
+      image_pub_left.publish(left->toImageMsg());
+
+      //display edited images Update GUI Window
+      cv::imshow(OPENCV_WINDOW_RIGHT, right->image);
+      cv::waitKey(3);
+      cv::imshow(OPENCV_WINDOW_LEFT, left->image);
+      cv::waitKey(3);
+
+  }
+
+};
+
+int main(int argc, char** argv)
+{
+  //Indicate code start on terminal
+  std::cout << "Code Start: pkg basicEdit script stereo_edit_dual_access \n";
+
+  //Initilize node
+  ros::init(argc, argv, "stereo_edit_dual_access");
+  StereoEditDualAccess seda;
+
+
+  //loopingly publish edited images once both are created
+
+ ros::Rate r(60); // 60 hz loop rate
+  while(ros::ok()){
+      if(newEditRight == true && newEditLeft == true){
+          newEditRight= false;
+          newEditLeft = false;
+
+         // copy latest images to constant variables
+          cv_bridge::CvImagePtr rightHold = cv_ptr_right;
+          cv_bridge::CvImagePtr leftHold = cv_ptr_left;
+
+          //call edit function
+          seda.imagesEditPublish(rightHold,leftHold);
+
+          //display edited images Update GUI Window
+          cv::imshow(OPENCV_WINDOW_RIGHT, cv_ptr_right->image);
+          cv::imshow(OPENCV_WINDOW_LEFT, cv_ptr_left->image);
+
+
+      }
+      ros::spinOnce();
+      r.sleep();
+
+ }
+  ros::spin();
+  return 0;
+}

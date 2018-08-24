@@ -1,0 +1,36 @@
+Video_Access_Point CPP Scripts
+located under dv_vision_pipeline_ws -> video_access_point -> src
+
+*Additional information included in the da Vinci Vision Pipeline Documentation
+
+
+These files are for accessting the video taken into the vision pipeline, editing them through openCv functions, and outputting them back into the ROS ecosystem. They are 3 templates for differnt type of application purposes.
+
+
+Why Two Scripts for Two Cameras?:
+A highly important part of this process is code scope, and has resulted in there being these two scripts to choose from for your application.  
+
+The difference is in "stereo_edit" each image is handled by a seperate subscriber callback function that handles the full task of recive, edit, and publish. 
+
+In "stereo_edit_dual_access" each subscriber callback function only handles the reception of the image and passes it into a updating variable that is accesable by the full script's scope. This allows for the use of specific OpenCV functions that require access to both image files, such as creating disparity images or depth maps. 
+
+The reason for keeping "stereo_edit" around when it seems redundant is that "stereo_edit_dual_access" may be more succeptable to race conditions. It will wait for both images to be edited and ready before publishing them into ROS. THerefore, under intensive editing functions the performance of the vision pipeline may go down, with issues such as long delays between frame updates, intermediate frames lacking edits, and other inconsitencies.
+
+Therefore, "stereo_edit" is provided for applications that don't need dual access to both image streams and can therefore provide better garuantees of performance.
+
+
+
+Why a Script for Four Cameras With Stereo Vision?
+This file is a template for one of the main future applications of interest wih the da Vinci Pipeline. That is overlaying the da Vinci endoscope cameras feed with video feed from virtual cameras inside the da Vinci Simulation system. 
+
+This way an ecosystem where virtual elements could be presented to the live feed of the console oporator is easy to integrate with the vision pipeline. Thus, creating augmented reality applications for surgery performance improvements.
+
+All that is needed with this template is to replace the ROS topics the "augmentation" virtual cameras are listening too, and apply the desired editing with all four video feeds to the four output video feeds. While only two output feeds are needed for the console oporator, the additional two are provided to be able to see individual edits performed on the virtual camera images, before they are merged with the endoscope camera.
+
+Again, all four of these video feed images are accessable in the same scope of code for mixed processing purposes.
+
+
+
+Creating Additional Scripts:
+For creating aditional scripts, edit the desired OpenCv functions in the indicated code areas and replace the file name where it appears in the code with your new script's name.
+Then add your new script to the indicated locations in the package's cmakelists.txt files. This establishes links to build files and the needed OpenCV tools.
